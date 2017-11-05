@@ -1,0 +1,5 @@
+{
+    "password" : "configuration is easy to break, note when built this file should be placed next to the jar",
+    "connectionUrl" : "jdbc:postgresql://localhost:5432/mydb?user=postgres&password=sarstoow",
+    "port" : 80
+}
