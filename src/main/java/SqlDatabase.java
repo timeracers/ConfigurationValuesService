@@ -20,19 +20,25 @@ public class SqlDatabase {
         }
     }
 
-    public int execute(String sql) throws SQLException {
+    public int execute(String sql, Object... params) throws SQLException {
         Connection c = DriverManager.getConnection(connectionUrl);
-        Statement s = c.createStatement();
-        int affected = s.executeUpdate(sql);
+        PreparedStatement s = c.prepareStatement(sql);
+        for(int i = 0; i < params.length; i++) {
+            s.setObject(i + 1, params[i]);
+        }
+        int affected = s.executeUpdate();
         s.close();
         c.close();
         return affected;
     }
 
-    public List<Map<String, Object>> query(String sql) throws SQLException {
+    public List<Map<String, Object>> query(String sql, Object... params) throws SQLException {
         Connection c = DriverManager.getConnection(connectionUrl);
-        Statement s = c.createStatement();
-        ResultSet results = s.executeQuery(sql);
+        PreparedStatement s = c.prepareStatement(sql);
+        for(int i = 0; i < params.length; i++) {
+            s.setObject(i + 1, params[i]);
+        }
+        ResultSet results = s.executeQuery();
 
         ArrayList<Map<String, Object>> entities = new ArrayList<>();
         ResultSetMetaData metaData = results.getMetaData();

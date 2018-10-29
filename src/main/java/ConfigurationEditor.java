@@ -6,10 +6,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ConfigurationEditor {
     private final SqlDatabase database;
@@ -33,8 +35,8 @@ public class ConfigurationEditor {
                     "Body is required to be a json object");
             }
             try {
-                List<Map<String, Object>> results = database.query("SELECT values FROM configurations.configValues WHERE "
-                    + "token = '" + session.getParms().get("token") + "'");
+                List<Map<String, Object>> results = database.query("SELECT values FROM configurations.configValues WHERE token = ?",
+                    UUID.fromString(session.getParms().get("token")));
                 if(results.size() == 0)
                     return new ResponseWrapper(404, "DoesNotExistException",
                         "Configuration for this token does not exist and therefore can not be altered");
@@ -42,9 +44,11 @@ public class ConfigurationEditor {
                 for (Entry<String, String> pair : newValues.entrySet()) {
                     values.put(pair.getKey(), pair.getValue());
                 }
-                database.execute("UPDATE configurations.configValues SET values = '" + mapper.writeValueAsString(values)
-                    + "' WHERE token = '" + session.getParms().get("token") + "'");
+                database.execute("UPDATE configurations.configValues SET values = ? WHERE token = ?",
+                    mapper.writeValueAsString(values), UUID.fromString(session.getParms().get("token")));
                 return new ResponseWrapper();
+            } catch (IllegalArgumentException ex) {
+                return new ResponseWrapper(400, "IllegalArgumentException", "Expected token type is uuid");
             } catch (Exception ex) {
                 return new ResponseWrapper(500, "UnexpectedException", "setValues");
             }
@@ -61,8 +65,8 @@ public class ConfigurationEditor {
                     "Body is required to be a json array");
             }
             try {
-                List<Map<String, Object>> results = database.query("SELECT values FROM configurations.configValues WHERE "
-                    + "token = '" + session.getParms().get("token") + "'");
+                List<Map<String, Object>> results = database.query("SELECT values FROM configurations.configValues WHERE token = ?",
+                    UUID.fromString(session.getParms().get("token")));
                 if(results.size() == 0)
                     return new ResponseWrapper(404, "DoesNotExistException",
                         "Configuration for this token does not exist and therefore can not be altered");
@@ -70,9 +74,11 @@ public class ConfigurationEditor {
                 for (String value : valuesToRemove) {
                     values.remove(value);
                 }
-                database.execute("UPDATE configurations.configValues SET values = '" + mapper.writeValueAsString(values)
-                    + "' WHERE token = '" + session.getParms().get("token") + "'");
+                database.execute("UPDATE configurations.configValues SET values = ? WHERE token = ?",
+                    mapper.writeValueAsString(values), UUID.fromString(session.getParms().get("token")));
                 return new ResponseWrapper();
+            } catch (IllegalArgumentException ex) {
+                return new ResponseWrapper(400, "IllegalArgumentException", "Expected token type is uuid");
             } catch (Exception ex) {
                 return new ResponseWrapper(500, "UnexpectedException", "clearValues");
             }

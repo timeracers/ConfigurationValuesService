@@ -36,12 +36,11 @@ public class ConfigurationAdministration {
             try {
                 Matcher matches = Pattern.compile("\\/([^\\/]+)\\/?").matcher(session.getUri());
                 matches.find();
-                database.execute("INSERT INTO configurations.apps (name) VALUES ('" + matches.group(1) + "')");
+                database.execute("INSERT INTO configurations.apps (name) VALUES (?)", matches.group(1));
                 return new ResponseWrapper();
             } catch (SQLException ex) {
-                if(ex.getSQLState() == "23505")
-                    return new ResponseWrapper(409, "AlreadyExistsException",
-                        "App already exists");
+                if(ex.getSQLState().equals("23505"))
+                    return new ResponseWrapper(409, "AlreadyExistsException", "App already exists");
                 return new ResponseWrapper(500, "UnexpectedException", "addApp");
             }
         });
@@ -52,8 +51,7 @@ public class ConfigurationAdministration {
             try {
                 Matcher matches = Pattern.compile("\\/([^\\/]+)\\/?").matcher(session.getUri());
                 matches.find();
-                int affected = database.execute("DELETE FROM configurations.apps WHERE name = '" + matches.group(1)
-                    + "'");
+                int affected = database.execute("DELETE FROM configurations.apps WHERE name = ?", matches.group(1));
                 if(affected == 0)
                     return new ResponseWrapper(404, "DoesNotExistException",
                         "App not found");
@@ -69,12 +67,11 @@ public class ConfigurationAdministration {
             try {
                 Matcher matches = Pattern.compile("\\/([^\\/]+)\\/?").matcher(session.getUri());
                 matches.find();
-                List<Map<String, Object>> results = database.query("SELECT config FROM configurations.configProfiles "
-                    + "WHERE app = '" + matches.group(1) + "'");
-                if(results.size() == 0 && database.query("SELECT name FROM configurations.apps WHERE name ="
-                    + " '" + matches.group(1) + "'").size() == 0)
-                        return new ResponseWrapper(404, "DoesNotExistException",
-                            "App does not exist");
+                List<Map<String, Object>> results = database.query("SELECT config FROM configurations.configProfiles WHERE app = ?",
+                    matches.group(1));
+                if(results.size() == 0 && database.query("SELECT name FROM configurations.apps WHERE name = ?", matches.group(1)).size() == 0)
+                    return new ResponseWrapper(404, "DoesNotExistException",
+                        "App does not exist");
                 List<Object> output = new ArrayList<>();
                 for (Map<String, Object> result : results ) {
                     output.add(result.get("config"));
@@ -92,15 +89,13 @@ public class ConfigurationAdministration {
                 Matcher matches = Pattern.compile("\\/([^\\/]+)\\/([^\\/]+)\\/?").matcher(session.getUri());
                 matches.find();
                 UUID token = generateSequentialUuid();
-                database.execute("INSERT INTO configurations.configProfiles (app, config, token) VALUES ('" +
-                    matches.group(1) + "', '" + matches.group(2) + "', '" + token + "')");
-                database.execute("INSERT INTO configurations.configValues (token, values) VALUES ('" + token
-                    + "', '{}')");
+                database.execute("INSERT INTO configurations.configProfiles (app, config, token) VALUES (?, ?, ?)",
+                    matches.group(1), matches.group(2), token);
+                database.execute("INSERT INTO configurations.configValues (token, values) VALUES (?, '{}')", token);
                 return new ResponseWrapper(token);
             } catch (SQLException ex) {
-                if(ex.getSQLState() == "23503")
-                    return new ResponseWrapper(404, "DoesNotExistException",
-                        "App does not exist");
+                if(ex.getSQLState().equals("23503"))
+                    return new ResponseWrapper(404, "DoesNotExistException","App does not exist");
                 return new ResponseWrapper(500, "UnexpectedException", "addConfig");
             }
         });
@@ -111,8 +106,8 @@ public class ConfigurationAdministration {
             try {
                 Matcher matches = Pattern.compile("\\/([^\\/]+)\\/([^\\/]+)\\/?").matcher(session.getUri());
                 matches.find();
-                int affected = database.execute("DELETE FROM configurations.configProfiles WHERE app = '"
-                    + matches.group(1) + "' AND config = '" + matches.group(2) + "'");
+                int affected = database.execute("DELETE FROM configurations.configProfiles WHERE app = ? AND config = ?",
+                    matches.group(1), matches.group(2));
                 if(affected == 0)
                     return new ResponseWrapper(404, "DoesNotExistException",
                         "Configuration not found");
@@ -129,7 +124,7 @@ public class ConfigurationAdministration {
                 Matcher matches = Pattern.compile("\\/([^\\/]+)\\/([^\\/]+)\\/?").matcher(session.getUri());
                 matches.find();
                 List<Map<String, Object>> results = database.query("SELECT token FROM configurations.configProfiles "
-                    + "WHERE app = '" + matches.group(1) + "' AND config = '" + matches.group(2) + "'");
+                    + "WHERE app = ? AND config = ?", matches.group(1), matches.group(2));
                 if(results.size() == 0)
                     return new ResponseWrapper(404, "DoesNotExistException",
                         "Configuration not found");

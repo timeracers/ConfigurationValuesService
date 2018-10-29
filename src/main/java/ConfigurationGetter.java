@@ -3,6 +3,7 @@ import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 
 public class ConfigurationGetter {
@@ -15,13 +16,15 @@ public class ConfigurationGetter {
     public ResponseWrapper get(IHTTPSession session)
     {
         try {
-            List<Map<String, Object>> results = database.query("SELECT values FROM configurations.configValues WHERE "
-                + "token = '" + session.getParms().get("token") + "'");
+            List<Map<String, Object>> results = database.query("SELECT values FROM configurations.configValues WHERE token = ?",
+                UUID.fromString(session.getParms().get("token")));
             if(results.size() == 0)
                 return new ResponseWrapper(404, "DoesNotExistException",
                     "Configuration for this token was not found");
             return new ResponseWrapper(results.get(0).get("values"));
-        } catch (SQLException ex) {
+        } catch (IllegalArgumentException ex) {
+            return new ResponseWrapper(400, "IllegalArgumentException", "Expected token type is uuid");
+        } catch (Exception ex) {
             return new ResponseWrapper(500, "UnexpectedException", "getValues");
         }
     }
